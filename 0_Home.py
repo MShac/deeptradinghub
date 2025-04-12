@@ -253,7 +253,7 @@ fig.update_layout(
 )
 
 # Display chart
-
+st.plotly_chart(fig, use_container_width=True)
 
     if show_fib:
         for level in ['Fib_0.236', 'Fib_0.382', 'Fib_0.5', 'Fib_0.618', 'Fib_0.786']:
