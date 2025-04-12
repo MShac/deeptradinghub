@@ -1,0 +1,57 @@
+.
+├── .streamlit
+│   └── config.toml
+├── 0_Home.py
+├── 1_About.py
+├── 2_Team.py
+├── 3_Docs.py
+├── __pycache__
+│   ├── config.cpython-313.pyc
+│   ├── data_fetcher.cpython-313.pyc
+│   ├── indicators.cpython-313.pyc
+│   └── model.cpython-313.pyc
+├── config.py
+├── data_fetcher.py
+├── indicators.py
+├── logo.jpg
+├── model.py
+├── requirements.txt
+├── structure.txt
+├── utils.py
+└── venv
+    ├── .gitignore
+    ├── bin
+    │   ├── Activate.ps1
+    │   ├── activate
+    │   ├── activate.csh
+    │   ├── activate.fish
+    │   ├── f2py
+    │   ├── fonttools
+    │   ├── jsonschema
+    │   ├── normalizer
+    │   ├── numpy-config
+    │   ├── pip
+    │   ├── pip3
+    │   ├── pip3.13
+    │   ├── pyftmerge
+    │   ├── pyftsubset
+    │   ├── python -> /usr/bin/python
+    │   ├── python3 -> python
+    │   ├── python3.13 -> python
+    │   ├── streamlit
+    │   ├── streamlit.cmd
+    │   ├── ttx
+    │   └── watchmedo
+    ├── etc
+    │   └── jupyter
+    ├── include
+    │   └── python3.13
+    ├── lib
+    │   └── python3.13
+    ├── lib64 -> lib
+    ├── pyvenv.cfg
+    └── share
+        ├── jupyter
+        └── man
+
+15 directories, 40 files
