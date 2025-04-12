@@ -1,4 +1,4 @@
-DEFAULT_SYMBOL = "BTCUSDT"
-DEFAULT_INTERVAL = "1h"
-DEFAULT_LIMIT = 2000
-BINANCE_API_URL = "https://api.binance.com/api/v3/klines"
+# config.py
+DEFAULT_SYMBOL = "bitcoin"  # CoinGecko ID instead of BTCUSDT
+DEFAULT_INTERVAL = "1d"
+DEFAULT_LIMIT = 100
