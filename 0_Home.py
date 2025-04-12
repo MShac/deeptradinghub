@@ -10,6 +10,18 @@ import pandas as pd
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
+# 🔍 TEMPORARY BINANCE CONNECTIVITY TEST
+st.write("🔍 Testing Binance API connectivity:")
+try:
+    url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
+    res = requests.get(url)
+    st.success("✅ Binance API responded:")
+    st.write(res.json())
+except Exception as e:
+    st.error("❌ Failed to connect to Binance API:")
+    st.error(e)
+st.set_page_config(page_title="DeepTradeAI", layout="wide")
+
 # --- LOGO ENCODING ---
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
