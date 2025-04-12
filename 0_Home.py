@@ -145,7 +145,7 @@ with st.sidebar:
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-   from pycoingecko import CoinGeckoAPI
+    from pycoingecko import CoinGeckoAPI
 cg = CoinGeckoAPI()
 
 def get_live_price(symbol):
