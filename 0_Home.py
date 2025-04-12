@@ -6,7 +6,7 @@ from data_fetcher import fetch_crypto_data
 from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
-
+import pandas as pd 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
@@ -212,16 +212,48 @@ if st.session_state.get("run_prediction", False):
     st.markdown('</div>', unsafe_allow_html=True)
 
     # --- CHART ANALYSIS ---
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📈 Chart Analysis")
-    last_100 = df.tail(100)
+    import streamlit as st
+import plotly.graph_objects as go
+import pandas as pd
 
-    fig = go.Figure()
-    fig.add_trace(go.Candlestick(
-        x=last_100['Time'], open=last_100['Open'], high=last_100['High'],
-        low=last_100['Low'], close=last_100['Close'], name="Candles"
-    ))
-    st.plotly_chart(fig, use_container_width=True)
+# Example: Load your DataFrame here (you should already be doing this)
+# df = pd.read_csv("your_file.csv")
+
+# Fix column names
+df.columns = df.columns.str.strip()
+st.write("Columns in DataFrame:", df.columns.tolist())  # Debug
+
+# Ensure 'Time' is in datetime format
+df['Time'] = pd.to_datetime(df['Time'])
+
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.subheader("📈 Chart Analysis")
+
+# Select last 100 rows
+last_100 = df.tail(100)
+
+# Create Plotly candlestick chart
+fig = go.Figure()
+fig.add_trace(go.Candlestick(
+    x=last_100['Time'],
+    open=last_100['Open'],
+    high=last_100['High'],
+    low=last_100['Low'],
+    close=last_100['Close'],
+    name="Candles"
+))
+
+# Optional: Customize layout
+fig.update_layout(
+    xaxis_title='Time',
+    yaxis_title='Price',
+    xaxis_rangeslider_visible=False,
+    template='plotly_dark',
+    margin=dict(l=10, r=10, t=30, b=10)
+)
+
+# Display chart
+
 
     if show_fib:
         for level in ['Fib_0.236', 'Fib_0.382', 'Fib_0.5', 'Fib_0.618', 'Fib_0.786']:
