@@ -9,8 +9,6 @@ import pandas as pd
 from data_fetcher import fetch_crypto_data  # Import statement on its own line
 
 # Now, initialize the text input for the CoinGecko symbol
-symbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
-
 
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
