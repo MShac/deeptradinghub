@@ -8,21 +8,6 @@ from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
 from data_fetcher import fetch_crypto_data  # Import statement on its own line
 
-# Test if CoinGecko API is working
-def test_coingecko_connection():
-    url = "https://api.coingecko.com/api/v3/ping"
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            st.success("✅ CoinGecko API is online!")
-            st.json(response.json())
-        else:
-            st.error(f"❌ CoinGecko API error: {response.status_code}")
-    except Exception as e:
-        st.error(f"❌ Could not connect to CoinGecko: {e}")
-
-# Call the test function
-test_coingecko_connection()
 
 # Now, initialize the text input for the CoinGecko symbol
 
