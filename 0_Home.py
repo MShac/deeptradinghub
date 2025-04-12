@@ -161,6 +161,9 @@ with st.sidebar:
         st.session_state.run_prediction = True
 
 # --- MAIN SECTION ---
+# Keep everything above the same...
+
+# --- MAIN SECTION ---
 if st.session_state.get("run_prediction", False):
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔮 Prediction Engine")
@@ -172,6 +175,9 @@ if st.session_state.get("run_prediction", False):
     if df.empty:
         st.error("❌ Failed to fetch data. Please check the symbol or try again.")
     else:
+        df.columns = df.columns.str.strip()
+        df['Time'] = pd.to_datetime(df['Time'])
+
         df = calculate_indicators(df)
         support, resistance = find_support_resistance(df)
 
@@ -182,104 +188,69 @@ if st.session_state.get("run_prediction", False):
 
         # Fetch live price
         live_price = get_live_price(symbol)
-
-        # Check if live price is available
         if live_price:
-            # Find the nearest Fibonacci level to the current live price
             nearest_fib = min(fib_prices, key=lambda x: abs(x - live_price))
-
-            # Set entry level to the nearest Fibonacci level
             entry_level = nearest_fib
-
-            # Print the entry level for debugging
             st.write(f"Entry Level (Nearest Fibonacci): ${entry_level:.2f}")
 
         model, scaler = train_model(df)
 
         if model:
             prediction, entry_price, (stop_loss, take_profit) = predict_trade(df, model, scaler, support, resistance)
-            st.write(f"Prediction: {prediction}")  # This will display "Buy" or "Sell"
-            entry_price = entry_level  # Override entry price with nearest Fibonacci level
+            st.write(f"Prediction: {prediction}")
+            entry_price = entry_level
         else:
             prediction, entry_price, stop_loss, take_profit = "No Signal", 0, 0, 0
 
-        # Show entry price with nearest Fibonacci level
         col1, col2, col3 = st.columns(3)
         col1.metric("📍 Entry", f"${entry_price:.2f}")
         col2.metric("🛑 Stop Loss", f"${stop_loss:.2f}")
         col3.metric("🎯 Take Profit", f"${take_profit:.2f}")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        # --- CHART ANALYSIS ---
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📈 Chart Analysis")
 
-    # --- CHART ANALYSIS ---
-    import streamlit as st
-import plotly.graph_objects as go
-import pandas as pd
+        last_100 = df.tail(100)
+        fig = go.Figure()
+        fig.add_trace(go.Candlestick(
+            x=last_100['Time'],
+            open=last_100['Open'],
+            high=last_100['High'],
+            low=last_100['Low'],
+            close=last_100['Close'],
+            name="Candles"
+        ))
 
-# Example: Load your DataFrame here (you should already be doing this)
-# df = pd.read_csv("your_file.csv")
+        if show_fib:
+            for level, fib_price in zip(['Fib_0.236', 'Fib_0.382', 'Fib_0.5', 'Fib_0.618', 'Fib_0.786'], fib_prices):
+                fig.add_trace(go.Scatter(
+                    x=last_100['Time'],
+                    y=[fib_price]*len(last_100),
+                    name=level,
+                    line=dict(dash='dot')
+                ))
 
-# Fix column names
-df.columns = df.columns.str.strip()
-st.write("Columns in DataFrame:", df.columns.tolist())  # Debug
+        if show_indicators:
+            if 'EMA_9' in df.columns:
+                fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100['EMA_9'], name='EMA 9', line=dict(color='orange')))
+            if 'EMA_21' in df.columns:
+                fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100['EMA_21'], name='EMA 21', line=dict(color='blue')))
 
-# Ensure 'Time' is in datetime format
-df['Time'] = pd.to_datetime(df['Time'])
+        if show_sr and support and resistance:
+            fig.add_hline(y=support, line_color="green", line_dash="dash", annotation_text="Support", annotation_position="bottom left")
+            fig.add_hline(y=resistance, line_color="red", line_dash="dash", annotation_text="Resistance", annotation_position="top left")
 
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("📈 Chart Analysis")
-
-# Select last 100 rows
-last_100 = df.tail(100)
-
-# Create Plotly candlestick chart
-fig = go.Figure()
-fig.add_trace(go.Candlestick(
-    x=last_100['Time'],
-    open=last_100['Open'],
-    high=last_100['High'],
-    low=last_100['Low'],
-    close=last_100['Close'],
-    name="Candles"
-))
-
-# Optional: Customize layout
-fig.update_layout(
-    xaxis_title='Time',
-    yaxis_title='Price',
-    xaxis_rangeslider_visible=False,
-    template='plotly_dark',
-    margin=dict(l=10, r=10, t=30, b=10)
-)
-
-# Display chart
-st.plotly_chart(fig, use_container_width=True)
-
-    if show_fib:
-        for level in ['Fib_0.236', 'Fib_0.382', 'Fib_0.5', 'Fib_0.618', 'Fib_0.786']:
-            if level in df.columns:
-                fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100[level], name=level, line=dict(dash='dot')))
-
-    if show_indicators:
-        if 'EMA_9' in df.columns:
-            fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100['EMA_9'], name='EMA 9', line=dict(color='orange')))
-        if 'EMA_21' in df.columns:
-            fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100['EMA_21'], name='EMA 21', line=dict(color='blue')))
-
-    if show_sr and support and resistance:
-        fig.add_hline(y=support, line_color="green", line_dash="dash", annotation_text="Support", annotation_position="bottom left")
-        fig.add_hline(y=resistance, line_color="red", line_dash="dash", annotation_text="Resistance", annotation_position="top left")
-
-    fig.update_layout(
-        template="plotly_dark",
-        xaxis_title="Time",
-        yaxis_title="Price",
-        margin=dict(l=20, r=20, t=30, b=20),
-        xaxis_rangeslider_visible=False,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        fig.update_layout(
+            template="plotly_dark",
+            xaxis_title="Time",
+            yaxis_title="Price",
+            margin=dict(l=20, r=20, t=30, b=20),
+            xaxis_rangeslider_visible=False,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- FOOTER ---
 st.markdown(
