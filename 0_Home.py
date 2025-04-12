@@ -3,7 +3,6 @@ import base64
 import requests
 import plotly.graph_objects as go
 from data_fetcher import fetch_crypto_datasymbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
-
 from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
