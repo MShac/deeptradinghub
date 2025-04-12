@@ -2,11 +2,14 @@ import streamlit as st
 import base64
 import requests
 import plotly.graph_objects as go
-from data_fetcher import fetch_crypto_datasymbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
 from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
+from data_fetcher import fetch_crypto_data  # Import statement on its own line
+
+# Now, initialize the text input for the CoinGecko symbol
+symbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
 
 
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
