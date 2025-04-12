@@ -5,3 +5,5 @@ scikit-learn
 matplotlib
 streamlit
 plotly
+pycoingecko
+
