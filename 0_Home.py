@@ -8,6 +8,13 @@ from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
+from pycoingecko import CoinGeckoAPI
+
+cg = CoinGeckoAPI()
+symbol = "bitcoin"  # Change this to a valid coin ID
+data = cg.get_price(ids=symbol, vs_currencies="usd")
+print(data)
+
 
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
