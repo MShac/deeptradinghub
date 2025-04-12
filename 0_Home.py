@@ -14,38 +14,6 @@ st.set_page_config(page_title="DeepTradeAI", layout="wide")
 import requests
 import pandas as pd
 
-def fetch_binance_data(symbol="BTCUSDT", interval="1h", limit=100):
-    url = f"https://api.binance.com/api/v3/klines"
-    params = {
-        "symbol": symbol,
-        "interval": interval,
-        "limit": limit
-    }
-
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()  # Raises HTTPError for bad responses
-
-        data = response.json()
-        df = pd.DataFrame(data, columns=[
-            "Open time", "Open", "High", "Low", "Close", "Volume",
-            "Close time", "Quote asset volume", "Number of trades",
-            "Taker buy base", "Taker buy quote", "Ignore"
-        ])
-
-        df["Time"] = pd.to_datetime(df["Open time"], unit="ms")
-        df = df[["Time", "Open", "High", "Low", "Close", "Volume"]]
-        df = df.astype({
-            "Open": float, "High": float, "Low": float,
-            "Close": float, "Volume": float
-        })
-
-        return df
-
-    except requests.exceptions.RequestException as e:
-        print("Binance API request failed:", e)
-        return None
-
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
 # --- LOGO ENCODING ---
