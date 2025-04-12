@@ -221,6 +221,7 @@ if st.session_state.get("run_prediction", False):
         x=last_100['Time'], open=last_100['Open'], high=last_100['High'],
         low=last_100['Low'], close=last_100['Close'], name="Candles"
     ))
+    st.plotly_chart(fig, use_container_width=True)
 
     if show_fib:
         for level in ['Fib_0.236', 'Fib_0.382', 'Fib_0.5', 'Fib_0.618', 'Fib_0.786']:
