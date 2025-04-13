@@ -5,9 +5,9 @@ import plotly.graph_objects as go
 from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
-import pandas as pd
-from data_fetcher import fetch_crypto_data  # Import statement on its own line
-from pycoingecko import CoinGeckoAPI
+import pandas as pd 
+from data_fetcher import fetch_crypto_data  # Import statement on its own lin
+import streamlit as st
 
 
 def test_bybit_kline(symbol="BTCUSDT", interval="60", limit=5):
@@ -30,19 +30,19 @@ def test_bybit_kline(symbol="BTCUSDT", interval="60", limit=5):
                 "timestamp", "open", "high", "low", "close", "volume", "turnover"
             ])
             df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-            st.success("✅ Bybit API is working!")  # Success message on the Streamlit app
-            st.write(df[["timestamp", "open", "high", "low", "close", "volume"]])  # Show data in the app
+            print("✅ Bybit API is working!")
+            print(df[["timestamp", "open", "high", "low", "close", "volume"]])
         else:
-            st.error(f"❌ API returned error: {data['retMsg']}")  # Show error message on the Streamlit app
+            print("❌ API returned error:", data["retMsg"])
     except Exception as e:
-        st.error(f"❌ Exception occurred: {e}")  # Show exception message on the Streamlit app
+        print("❌ Exception occurred:", e)
 
-
-# Run the Bybit API test function
+# Run test
 test_bybit_kline(interval="60")  # 60 = 1 hour candles
 
 
 # Now, initialize the text input for the CoinGecko symbol
+
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
 # --- LOGO ENCODING ---
@@ -170,6 +170,7 @@ st.markdown(f"""
 
 # --- SIDEBAR SETTINGS ---
 
+ # --- SIDEBAR SETTINGS ---
 with st.sidebar:
     st.title("⚙️ Settings")
     
@@ -179,6 +180,7 @@ with st.sidebar:
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
+    from pycoingecko import CoinGeckoAPI
     cg = CoinGeckoAPI()
 
     def get_live_price(symbol):
