@@ -1,166 +1,247 @@
 import streamlit as st
-import pandas as pd
+import base64
+import requests
 import plotly.graph_objects as go
+from indicators import calculate_indicators, find_support_resistance
+from model import train_model, predict_trade
+from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
+import pandas as pd
 from data_fetcher import fetch_crypto_data
-from model import predict_signal
-from indicators import (
-    calculate_sma,
-    calculate_ema,
-    calculate_macd,
-    calculate_rsi,
-    calculate_bollinger_bands,
-    calculate_atr,
-    calculate_vwap,
-    calculate_fibonacci_levels,
-    get_nearest_level
-)
-import time
+from pycoingecko import CoinGeckoAPI
 
-# Page config
+# Streamlit setup
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
-# Custom CSS
-st.markdown("""
+# --- LOGO ENCODING ---
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode()
+
+logo_path = "logo.jpg"
+logo_base64 = encode_image(logo_path)
+
+# --- CUSTOM CSS ---
+st.markdown(f"""
     <style>
-        html, body, [class*="css"] {
-            font-family: 'Poppins', sans-serif;
-        }
-        .main {
-            background-color: #0f0f0f;
-            color: #ffffff;
-        }
-        .stButton>button {
-            background-color: #00adb5;
-            color: white;
-        }
-        h1, h2, h3, h4 {
-            background: -webkit-linear-gradient(45deg, #00adb5, #eeeeee);
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        html, body, [class*="css"] {{
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #f5f5f5;
+        }}
+
+        .header-container {{
+            display: flex;
+            align-items: center;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #333;
+        }}
+        .header-container img {{
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 20px;
+            box-shadow: 0 0 10px rgba(0, 198, 255, 0.8);
+        }}
+        .header-container h1 {{
+            font-size: 3rem;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }
-        .block-container {
-            padding: 2rem;
-        }
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            margin: 0;
+        }}
+
+        .card {{
+            background-color: #1c1f26;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+            animation: fadeIn 1s ease-in-out;
+        }}
+        .card:hover {{
+            transform: scale(1.02);
+        }}
+        @keyframes fadeIn {{
+            0% {{opacity: 0; transform: translateY(20px);}}
+            100% {{opacity: 1; transform: translateY(0);}}
+        }}
+
+        [data-testid="stMetricValue"] {{
+            color: #00e5ff;
+            font-size: 1.5rem;
+            text-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+        }}
+
+        .sidebar .sidebar-content {{
+            background-color: #212d38;
+            color: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 10px;
+        }}
+
+        footer {{
+            text-align: center;
+            color: #bbb;
+            margin-top: 2rem;
+            font-size: 0.85rem;
+        }}
+        footer hr {{
+            border: 0.5px solid #444;
+            margin-bottom: 1rem;
+        }}
+        footer p {{
+            font-weight: 600;
+        }}
+
+        @media (max-width: 768px) {{
+            .header-container {{
+                flex-direction: column;
+                align-items: flex-start;
+            }}
+            .header-container h1 {{
+                font-size: 2.5rem;
+            }}
+            .card {{
+                padding: 1rem;
+            }}
+            .sidebar {{
+                display: none;
+            }}
+            footer {{
+                font-size: 1rem;
+            }}
+        }}
     </style>
+    <div class="header-container">
+        <img src="data:image/jpeg;base64,{logo_base64}" alt="Logo">
+        <h1>DeepTradeAI</h1>
+    </div>
 """, unsafe_allow_html=True)
 
-# Sidebar
-st.sidebar.image("https://i.imgur.com/XRdNmtD.png", width=200)
-st.sidebar.title("DeepTradeAI")
-symbol = st.sidebar.selectbox("Select Coin", ["bitcoin", "ethereum", "dogecoin"], index=0)
-interval = st.sidebar.selectbox("Timeframe", ["1h", "4h", "1d"], index=0)
+# --- SIDEBAR SETTINGS ---
+with st.sidebar:
+    st.title("⚙️ Settings")
+    symbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
+    interval = st.selectbox("⏱️ Timeframe:", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
+    show_fib = st.checkbox("📐 Show Fibonacci Levels", value=True)
+    show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
+    show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-# Toggle indicators
-show_sma = st.sidebar.checkbox("SMA")
-show_ema = st.sidebar.checkbox("EMA")
-show_macd = st.sidebar.checkbox("MACD")
-show_rsi = st.sidebar.checkbox("RSI")
-show_bbands = st.sidebar.checkbox("Bollinger Bands")
-show_atr = st.sidebar.checkbox("ATR")
-show_vwap = st.sidebar.checkbox("VWAP")
-show_fib = st.sidebar.checkbox("Fibonacci Levels", value=True)
+    cg = CoinGeckoAPI()
 
-# Utility to map interval to CoinGecko-compatible `days`
-def timeframe_to_days(interval):
-    mapping = {
-        "1m": "1",
-        "5m": "1",
-        "15m": "1",
-        "1h": "1",
-        "4h": "1",
-        "1d": "7"
-    }
-    return mapping.get(interval, "1")
+    def get_live_price(symbol):
+        try:
+            data = cg.get_price(ids=symbol, vs_currencies='usd')
+            return data[symbol]['usd']
+        except:
+            return None
 
-# Header
-st.title("📊 DeepTradeAI - Crypto Predictor")
-st.markdown("**Live Crypto Chart + Indicators + Buy/Sell Prediction Engine**")
+    live_price = get_live_price(symbol)
+    if live_price:
+        st.metric(label=f"💰 Live Price ({symbol})", value=f"${live_price:.2f}")
 
-# Fetch data
-days = timeframe_to_days(interval)
-df = fetch_crypto_data(symbol, days=days)
+    st.markdown("---")
+    if st.button("🔄 Get Prediction"):
+        st.session_state.run_prediction = True
 
-if df.empty:
-    st.error("No data fetched. Please check your internet connection or try a different coin.")
-    st.stop()
+# --- MAIN SECTION ---
+if st.session_state.get("run_prediction", False):
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("🔮 Prediction Engine")
 
-# Add indicators
-if show_sma:
-    df["SMA"] = calculate_sma(df["Close"])
-if show_ema:
-    df["EMA"] = calculate_ema(df["Close"])
-if show_macd:
-    df["MACD"], df["Signal Line"] = calculate_macd(df["Close"])
-if show_rsi:
-    df["RSI"] = calculate_rsi(df["Close"])
-if show_bbands:
-    df["Upper"], df["Middle"], df["Lower"] = calculate_bollinger_bands(df["Close"])
-if show_atr:
-    df["ATR"] = calculate_atr(df["High"], df["Low"], df["Close"])
-if show_vwap:
-    df["VWAP"] = calculate_vwap(df)
+    df = fetch_crypto_data(symbol, interval, limit=DEFAULT_LIMIT)
+    if df.empty:
+        st.error("❌ Failed to fetch data. Please check the symbol or try again.")
+    else:
+        df.columns = df.columns.str.strip()
+        df['Time'] = pd.to_datetime(df['Time'])
+        df = calculate_indicators(df)
 
-# Calculate Fibonacci levels and entry
-fib_levels = calculate_fibonacci_levels(df["Close"])
-entry = get_nearest_level(df["Close"].iloc[-1], fib_levels)
+        support, resistance = find_support_resistance(df)
 
-# Predict Buy/Sell Signal
-signal = predict_signal(df)
-last_price = df["Close"].iloc[-1]
+        fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786]
+        fib_range = resistance - support
+        fib_prices = [support + fib_range * level for level in fib_levels]
 
-# Set SL/TP
-sl = entry * 0.97
-tp = entry * 1.05
+        if live_price:
+            nearest_fib = min(fib_prices, key=lambda x: abs(x - live_price))
+            entry_level = nearest_fib
+            st.write(f"📌 Entry Level (Nearest Fibonacci): ${entry_level:.2f}")
+        else:
+            entry_level = support + fib_range * 0.5
 
-# Metrics
-col1, col2, col3 = st.columns(3)
-col1.metric("📈 Entry Price", f"${entry:.2f}")
-col2.metric("❌ Stop Loss", f"${sl:.2f}")
-col3.metric("✅ Take Profit", f"${tp:.2f}")
+        model, scaler = train_model(df)
 
-st.markdown(f"### 📍 Signal: **{signal}**")
-st.success("Buy Now!" if signal == "Buy" else "Sell Now!" if signal == "Sell" else "Hold")
+        if model:
+            prediction, raw_entry, (stop_loss, take_profit) = predict_trade(df, model, scaler, support, resistance)
+            entry_price = entry_level
+            st.write(f"Prediction: {prediction}")
+        else:
+            prediction, entry_price, stop_loss, take_profit = "No Signal", 0, 0, 0
 
-# Chart
-fig = go.Figure()
+        col1, col2, col3 = st.columns(3)
+        col1.metric("📍 Entry", f"${entry_price:.2f}")
+        col2.metric("🛑 Stop Loss", f"${stop_loss:.2f}")
+        col3.metric("🎯 Take Profit", f"${take_profit:.2f}")
 
-# Candlestick
-fig.add_trace(go.Candlestick(
-    x=df["Time"],
-    open=df["Open"],
-    high=df["High"],
-    low=df["Low"],
-    close=df["Close"],
-    name="Candles"
-))
+        # --- CHART SECTION ---
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📈 Chart Analysis")
 
-# Indicators on chart
-if show_sma:
-    fig.add_trace(go.Scatter(x=df["Time"], y=df["SMA"], mode='lines', name="SMA"))
-if show_ema:
-    fig.add_trace(go.Scatter(x=df["Time"], y=df["EMA"], mode='lines', name="EMA"))
-if show_bbands:
-    fig.add_trace(go.Scatter(x=df["Time"], y=df["Upper"], mode='lines', name="Upper Band"))
-    fig.add_trace(go.Scatter(x=df["Time"], y=df["Lower"], mode='lines', name="Lower Band"))
-if show_vwap:
-    fig.add_trace(go.Scatter(x=df["Time"], y=df["VWAP"], mode='lines', name="VWAP"))
+        last_100 = df.tail(100)
+        fig = go.Figure()
+        fig.add_trace(go.Candlestick(
+            x=last_100['Time'],
+            open=last_100['Open'],
+            high=last_100['High'],
+            low=last_100['Low'],
+            close=last_100['Close'],
+            name="Candles"
+        ))
 
-# Fibonacci levels on chart
-if show_fib:
-    for level, price in fib_levels.items():
-        fig.add_hline(y=price, line_dash="dot", annotation_text=level, line_color="#aaaaaa")
+        if show_fib:
+            for level, fib_price in zip(['Fib_0.236', 'Fib_0.382', 'Fib_0.5', 'Fib_0.618', 'Fib_0.786'], fib_prices):
+                fig.add_trace(go.Scatter(
+                    x=last_100['Time'],
+                    y=[fib_price]*len(last_100),
+                    name=level,
+                    line=dict(dash='dot')
+                ))
 
-# Styling
-fig.update_layout(
-    title=f"{symbol.upper()} Price Chart",
-    xaxis_title="Time",
-    yaxis_title="Price (USD)",
-    template="plotly_dark",
-    height=600
+        if show_indicators:
+            if 'EMA_9' in df.columns:
+                fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100['EMA_9'], name='EMA 9', line=dict(color='orange')))
+            if 'EMA_21' in df.columns:
+                fig.add_trace(go.Scatter(x=last_100['Time'], y=last_100['EMA_21'], name='EMA 21', line=dict(color='blue')))
+
+        if show_sr and support and resistance:
+            fig.add_hline(y=support, line_color="green", line_dash="dash", annotation_text="Support", annotation_position="bottom left")
+            fig.add_hline(y=resistance, line_color="red", line_dash="dash", annotation_text="Resistance", annotation_position="top left")
+
+        fig.update_layout(
+            template="plotly_dark",
+            xaxis_title="Time",
+            yaxis_title="Price",
+            margin=dict(l=20, r=20, t=30, b=20),
+            xaxis_rangeslider_visible=False,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# --- FOOTER ---
+st.markdown(
+    """
+    <footer>
+        <hr>
+        <p>© 2025 DeepTradeAI. Built with ❤️ and AI.</p>
+    </footer>
+    """,
+    unsafe_allow_html=True
 )
-
-st.plotly_chart(fig, use_container_width=True)
-
-# Footer
-st.markdown("---")
-st.markdown("Made with ❤️ by Mubashir — [DeepTradingHub.com](http://deeptradinghub.com)")
