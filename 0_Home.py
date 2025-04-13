@@ -8,24 +8,30 @@ from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
 from data_fetcher import fetch_crypto_data  # Import statement on its own line
 
-def test_api(name, url, headers=None, params=None):
+def test_bybit_api():
+    url = "https://api.bybit.com/v5/market/kline"
+    headers = {}  # You can leave this empty for public endpoints
+    params = {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "interval": "60",
+        "limit": 5
+    }
+
     try:
-        response = requests.get(https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=60, headers=headers, params=params, timeout=10)
-        print(f"[{name}] Status Code:", response.status_code)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        print("Status Code:", response.status_code)
         if response.status_code == 200:
-            print(f"[{name}] API is reachable ✅")
+            print("Bybit API is reachable ✅")
             print("Sample Response:", response.json())
         else:
-            print(f"[{name}] API returned error ❌")
+            print("Bybit API returned error ❌")
     except Exception as e:
-        print(f"[{name}] Exception occurred:", e)
+        print("Exception occurred:", e)
 
-# Example: Binance OHLCV for BTC/USDT (1h)
-test_api("Binance", "https://api.binance.com/api/v3/klines", params={
-    "symbol": "BTCUSDT",
-    "interval": "1h",
-    "limit": 5
-})
+# Call the function
+test_bybit_api()
+
 
 
 
