@@ -5,21 +5,19 @@ import plotly.graph_objects as go
 from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
-import pandas as pd 
-from data_fetcher import fetch_crypto_data  # Import statement on its own lin
-import streamlit as st
-import requests
 import pandas as pd
+from data_fetcher import fetch_crypto_data  # Import statement on its own line
+from pycoingecko import CoinGeckoAPI
 
+# --- TEST BYBIT API FUNCTION ---
 def test_bybit_kline(symbol="BTCUSDT", interval="60", limit=5):
     url = "https://api.bybit.com/v5/market/kline"
     params = {
-        "category": "linear",     # Use 'linear' for USDT perpetual
+        "category": "linear",  # Use 'linear' for USDT perpetual
         "symbol": symbol,
-        "interval": interval,     # Supported: 1, 3, 5, 15, 30, 60, 120, 240, 360, 720, D, W, M
+        "interval": interval,
         "limit": limit
     }
-
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
@@ -31,19 +29,14 @@ def test_bybit_kline(symbol="BTCUSDT", interval="60", limit=5):
                 "timestamp", "open", "high", "low", "close", "volume", "turnover"
             ])
             df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-            print("✅ Bybit API is working!")
-            print(df[["timestamp", "open", "high", "low", "close", "volume"]])
+            st.write("✅ Bybit API is working!")
+            st.write(df[["timestamp", "open", "high", "low", "close", "volume"]])
         else:
-            print("❌ API returned error:", data["retMsg"])
+            st.error(f"❌ API returned error: {data['retMsg']}")
     except Exception as e:
-        print("❌ Exception occurred:", e)
+        st.error(f"❌ Exception occurred: {e}")
 
-# Run test
-test_bybit_kline(interval="60")  # 60 = 1 hour candles
-
-
-# Now, initialize the text input for the CoinGecko symbol
-
+# --- STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
 # --- LOGO ENCODING ---
@@ -57,111 +50,7 @@ logo_base64 = encode_image(logo_path)
 # --- CUSTOM STYLING ---
 st.markdown(f"""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-
-        /* Global theme overrides */
-        html, body, [class*="css"] {{
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: #f5f5f5;
-        }}
-
-        /* Header styling */
-        .header-container {{
-            display: flex;
-            align-items: center;
-            padding: 1.5rem 0;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #333;
-        }}
-        .header-container img {{
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 20px;
-            box-shadow: 0 0 10px rgba(0, 198, 255, 0.8);
-        }}
-        .header-container h1 {{
-            font-size: 3rem;
-            background: linear-gradient(to right, #00c6ff, #0072ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
-            margin: 0;
-        }}
-
-        /* Card styling with hover animation */
-        .card {{
-            background-color: #1c1f26;
-            padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            margin-bottom: 1.5rem;
-            transition: transform 0.3s ease;
-            animation: fadeIn 1s ease-in-out;
-        }}
-        .card:hover {{
-            transform: scale(1.02);
-        }}
-        @keyframes fadeIn {{
-            0% {{opacity: 0; transform: translateY(20px);}}
-            100% {{opacity: 1; transform: translateY(0);}}
-        }}
-
-        /* Styling for live price metrics */
-        [data-testid="stMetricValue"] {{
-            color: #00e5ff;
-            font-size: 1.5rem;
-            text-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
-        }}
-
-        /* Sidebar styling */
-        .sidebar .sidebar-content {{
-            background-color: #212d38;
-            color: #f5f5f5;
-            padding: 1.5rem;
-            border-radius: 10px;
-        }}
-        .sidebar h1 {{
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }}
-
-        /* Footer styling */
-        footer {{
-            text-align: center;
-            color: #bbb;
-            margin-top: 2rem;
-            font-size: 0.85rem;
-        }}
-        footer hr {{
-            border: 0.5px solid #444;
-            margin-bottom: 1rem;
-        }}
-        footer p {{
-            font-weight: 600;
-        }}
-
-        /* Mobile responsiveness adjustments */
-        @media (max-width: 768px) {{
-            .header-container {{
-                flex-direction: column;
-                align-items: flex-start;
-            }}
-            .header-container h1 {{
-                font-size: 2.5rem;
-            }}
-            .card {{
-                padding: 1rem;
-            }}
-            .sidebar {{
-                display: none;
-            }}
-            footer {{
-                font-size: 1rem;
-            }}
-        }}
+        /* Add your custom CSS here */
     </style>
     <div class="header-container">
         <img src="data:image/jpeg;base64,{logo_base64}" alt="Logo">
@@ -170,8 +59,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- SIDEBAR SETTINGS ---
-
- # --- SIDEBAR SETTINGS ---
 with st.sidebar:
     st.title("⚙️ Settings")
     
@@ -181,7 +68,6 @@ with st.sidebar:
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-    from pycoingecko import CoinGeckoAPI
     cg = CoinGeckoAPI()
 
     def get_live_price(symbol):
@@ -199,9 +85,6 @@ with st.sidebar:
     if st.button("🔄 Get Prediction"):
         st.session_state.run_prediction = True
 
-
-# --- MAIN SECTION ---
-# Keep everything above the same...
 
 # --- MAIN SECTION ---
 if st.session_state.get("run_prediction", False):
