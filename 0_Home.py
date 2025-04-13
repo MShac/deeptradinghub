@@ -8,6 +8,8 @@ from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
 from data_fetcher import fetch_crypto_data  # Import statement on its own lin
 import streamlit as st
+import requests
+import pandas as pd
 
 def test_bybit_kline(symbol="BTCUSDT", interval="60", limit=5):
     url = "https://api.bybit.com/v5/market/kline"
