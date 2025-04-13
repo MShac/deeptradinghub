@@ -8,29 +8,37 @@ from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
 from data_fetcher import fetch_crypto_data  # Import statement on its own lin
 import streamlit as st
-import requests
 
-def test_bybit_api():
+def test_bybit_kline(symbol="BTCUSDT", interval="60", limit=5):
     url = "https://api.bybit.com/v5/market/kline"
-    headers = {}  # Public endpoint, no auth needed
     params = {
-        "category": "linear",
-        "symbol": "BTCUSDT",
-        "interval": "60",
-        "limit": 5
+        "category": "linear",     # Use 'linear' for USDT perpetual
+        "symbol": symbol,
+        "interval": interval,     # Supported: 1, 3, 5, 15, 30, 60, 120, 240, 360, 720, D, W, M
+        "limit": limit
     }
 
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-        st.write("Status Code:", response.status_code)
-        if response.status_code == 200:
-            st.success("Bybit API is reachable ✅")
-            st.json(response.json())  # Show raw response
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if data["retCode"] == 0:
+            candles = data["result"]["list"]
+            df = pd.DataFrame(candles, columns=[
+                "timestamp", "open", "high", "low", "close", "volume", "turnover"
+            ])
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            print("✅ Bybit API is working!")
+            print(df[["timestamp", "open", "high", "low", "close", "volume"]])
         else:
-            st.error("Bybit API returned an error ❌")
-            st.write(response.text)
+            print("❌ API returned error:", data["retMsg"])
     except Exception as e:
-        st.error(f"Exception occurred: {e}")
+        print("❌ Exception occurred:", e)
+
+# Run test
+test_bybit_kline(interval="60")  # 60 = 1 hour candles
+
 
 # Now, initialize the text input for the CoinGecko symbol
 
