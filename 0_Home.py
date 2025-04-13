@@ -6,11 +6,13 @@ from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd 
-from data_fetcher import fetch_crypto_data  # Import statement on its own line
+from data_fetcher import fetch_crypto_data  # Import statement on its own lin
+import streamlit as st
+import requests
 
 def test_bybit_api():
     url = "https://api.bybit.com/v5/market/kline"
-    headers = {}  # You can leave this empty for public endpoints
+    headers = {}  # Public endpoint, no auth needed
     params = {
         "category": "linear",
         "symbol": "BTCUSDT",
@@ -20,20 +22,15 @@ def test_bybit_api():
 
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
-        print("Status Code:", response.status_code)
+        st.write("Status Code:", response.status_code)
         if response.status_code == 200:
-            print("Bybit API is reachable ✅")
-            print("Sample Response:", response.json())
+            st.success("Bybit API is reachable ✅")
+            st.json(response.json())  # Show raw response
         else:
-            print("Bybit API returned error ❌")
+            st.error("Bybit API returned an error ❌")
+            st.write(response.text)
     except Exception as e:
-        print("Exception occurred:", e)
-
-# Call the function
-test_bybit_api()
-
-
-
+        st.error(f"Exception occurred: {e}")
 
 # Now, initialize the text input for the CoinGecko symbol
 
