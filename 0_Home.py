@@ -2,13 +2,12 @@ import streamlit as st
 import base64
 import requests
 import plotly.graph_objects as go
+import pandas as pd
 from indicators import calculate_indicators, find_support_resistance
 from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
-import pandas as pd
 from data_fetcher import fetch_crypto_data
 from pycoingecko import CoinGeckoAPI
-from config import COIN_SYMBOLS
 
 # Streamlit setup
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
@@ -31,7 +30,6 @@ st.markdown(f"""
             background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
             color: #f5f5f5;
         }}
-
         .header-container {{
             display: flex;
             align-items: center;
@@ -55,7 +53,6 @@ st.markdown(f"""
             text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
             margin: 0;
         }}
-
         .card {{
             background-color: #1c1f26;
             padding: 1.5rem;
@@ -72,20 +69,17 @@ st.markdown(f"""
             0% {{opacity: 0; transform: translateY(20px);}}
             100% {{opacity: 1; transform: translateY(0);}}
         }}
-
         [data-testid="stMetricValue"] {{
             color: #00e5ff;
             font-size: 1.5rem;
             text-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
         }}
-
         .sidebar .sidebar-content {{
             background-color: #212d38;
             color: #f5f5f5;
             padding: 1.5rem;
             border-radius: 10px;
         }}
-
         footer {{
             text-align: center;
             color: #bbb;
@@ -99,7 +93,6 @@ st.markdown(f"""
         footer p {{
             font-weight: 600;
         }}
-
         @media (max-width: 768px) {{
             .header-container {{
                 flex-direction: column;
@@ -125,10 +118,20 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR SETTINGS ---
+# --- Sidebar Settings ---
 with st.sidebar:
     st.title("⚙️ Settings")
+    cg = CoinGeckoAPI()
 
+    @st.cache_data(ttl=3600)
+    def get_top_100_coins():
+        try:
+            data = cg.get_coins_markets(vs_currency="usd", order="market_cap_desc", per_page=100, page=1)
+            return {f"{coin['name']} ({coin['symbol'].upper()})": coin['id'] for coin in data}
+        except:
+            return {"Bitcoin (BTC)": "bitcoin"}
+
+    COIN_SYMBOLS = get_top_100_coins()
     symbol_choice = st.selectbox("🔍 Select Coin:", options=list(COIN_SYMBOLS.keys()), index=0)
     symbol = COIN_SYMBOLS[symbol_choice]
 
@@ -137,36 +140,32 @@ with st.sidebar:
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-    cg = CoinGeckoAPI()
-
     def get_live_price(symbol):
         try:
             data = cg.get_price(ids=symbol, vs_currencies='usd')
             return data[symbol]['usd']
         except:
             return None
-live_price = get_live_price(symbol)
 
-if live_price:
-    def format_price(price):
-        if price >= 1:
-            return f"${price:,.2f}"
-        elif price >= 0.01:
-            return f"${price:,.4f}"
-        elif price >= 0.0001:
-            return f"${price:,.6f}"
-        else:
-            return f"${price:.8f}"
+    live_price = get_live_price(symbol)
 
-    st.metric(label=f"💰 Live Price ({symbol})", value=format_price(live_price))
-
+    if live_price:
+        def format_price(price):
+            if price >= 1:
+                return f"${price:,.2f}"
+            elif price >= 0.01:
+                return f"${price:,.4f}"
+            elif price >= 0.0001:
+                return f"${price:,.6f}"
+            else:
+                return f"${price:.8f}"
+        st.metric(label=f"💰 Live Price ({symbol})", value=format_price(live_price))
 
     st.markdown("---")
     if st.button("🔄 Get Prediction"):
         st.session_state.run_prediction = True
 
-
-# --- MAIN SECTION ---
+# --- Main Content ---
 if st.session_state.get("run_prediction", False):
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔮 Prediction Engine")
@@ -180,7 +179,6 @@ if st.session_state.get("run_prediction", False):
         df = calculate_indicators(df)
 
         support, resistance = find_support_resistance(df)
-
         fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786]
         fib_range = resistance - support
         fib_prices = [support + fib_range * level for level in fib_levels]
@@ -193,7 +191,6 @@ if st.session_state.get("run_prediction", False):
             entry_level = support + fib_range * 0.5
 
         model, scaler = train_model(df)
-
         if model:
             prediction, raw_entry, (stop_loss, take_profit) = predict_trade(df, model, scaler, support, resistance)
             entry_price = entry_level
@@ -252,12 +249,9 @@ if st.session_state.get("run_prediction", False):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # --- FOOTER ---
-st.markdown(
-    """
+st.markdown("""
     <footer>
         <hr>
         <p>© 2025 DeepTradingHub. Built with ❤️ and AI.</p>
     </footer>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
