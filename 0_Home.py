@@ -128,10 +128,9 @@ st.markdown(f"""
 # --- SIDEBAR SETTINGS ---
 with st.sidebar:
     st.title("⚙️ Settings")
-    
 
-symbol_choice = st.selectbox("🔍 Select Coin:", options=list(COIN_SYMBOLS.keys()), index=0)
-symbol = COIN_SYMBOLS[symbol_choice]
+    symbol_choice = st.selectbox("🔍 Select Coin:", options=list(COIN_SYMBOLS.keys()), index=0)
+    symbol = COIN_SYMBOLS[symbol_choice]
 
     interval = st.selectbox("⏱️ Timeframe:", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
     show_fib = st.checkbox("📐 Show Fibonacci Levels", value=True)
@@ -154,6 +153,7 @@ symbol = COIN_SYMBOLS[symbol_choice]
     st.markdown("---")
     if st.button("🔄 Get Prediction"):
         st.session_state.run_prediction = True
+
 
 # --- MAIN SECTION ---
 if st.session_state.get("run_prediction", False):
