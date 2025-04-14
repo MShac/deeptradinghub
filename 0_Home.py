@@ -145,20 +145,20 @@ with st.sidebar:
             return data[symbol]['usd']
         except:
             return None
+live_price = get_live_price(symbol)
 
-    live_price = get_live_price(symbol)
-    if live_price:
-        def format_price(price):
-    if price >= 1:
-        return f"${price:,.2f}"
-    elif price >= 0.01:
-        return f"${price:,.4f}"
-    elif price >= 0.0001:
-        return f"${price:,.6f}"
-    else:
-        return f"${price:.8f}"
+if live_price:
+    def format_price(price):
+        if price >= 1:
+            return f"${price:,.2f}"
+        elif price >= 0.01:
+            return f"${price:,.4f}"
+        elif price >= 0.0001:
+            return f"${price:,.6f}"
+        else:
+            return f"${price:.8f}"
 
-       st.metric(label=f"💰 Live Price ({symbol})", value=format_price(live_price))
+    st.metric(label=f"💰 Live Price ({symbol})", value=format_price(live_price))
 
 
     st.markdown("---")
