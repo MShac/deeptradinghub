@@ -8,6 +8,7 @@ from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 import pandas as pd
 from data_fetcher import fetch_crypto_data
 from pycoingecko import CoinGeckoAPI
+from config import COIN_SYMBOLS
 
 # Streamlit setup
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
@@ -127,7 +128,11 @@ st.markdown(f"""
 # --- SIDEBAR SETTINGS ---
 with st.sidebar:
     st.title("⚙️ Settings")
-    symbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
+    
+
+symbol_choice = st.selectbox("🔍 Select Coin:", options=list(COIN_SYMBOLS.keys()), index=0)
+symbol = COIN_SYMBOLS[symbol_choice]
+
     interval = st.selectbox("⏱️ Timeframe:", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
     show_fib = st.checkbox("📐 Show Fibonacci Levels", value=True)
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
