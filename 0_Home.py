@@ -129,25 +129,18 @@ with st.sidebar:
     st.title("⚙️ Settings")
     symbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
     interval = st.selectbox("⏱️ Timeframe:", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
-    
-    top_symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT"]
-    selected_symbol = st.selectbox("Choose Symbol", top_symbols)
-
     show_fib = st.checkbox("📐 Show Fibonacci Levels", value=True)
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-# ⬇️ Outside the sidebar block — no indentation
-df = fetch_crypto_data(symbol=selected_symbol, interval=interval)
+    cg = CoinGeckoAPI()
 
-# ✅ Define function with NO indentation error
-def get_live_price(symbol):
-    try:
-        data = cg.get_price(ids=symbol, vs_currencies='usd')
-        return data[symbol]['usd']
-    except:
-        return None
-
+    def get_live_price(symbol):
+        try:
+            data = cg.get_price(ids=symbol, vs_currencies='usd')
+            return data[symbol]['usd']
+        except:
+            return None
 
     live_price = get_live_price(symbol)
     if live_price:
