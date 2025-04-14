@@ -137,7 +137,7 @@ with st.sidebar:
     COIN_SYMBOLS = get_top_100_coins()
 
     # --- Coin Dropdown ---
-    symbol_choice = st.selectbox("🔍 Select Coin:", options=list(COIN_SYMBOLS.keys()), index=0)
+    symbol_choice = st.selectbox("🔍 Select Coin From TOP 100 coins:", options=list(COIN_SYMBOLS.keys()), index=0)
     symbol = COIN_SYMBOLS[symbol_choice]
 
     # --- Timeframe ---
