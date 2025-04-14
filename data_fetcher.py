@@ -2,8 +2,14 @@
 import pandas as pd
 from datetime import datetime
 from pycoingecko import CoinGeckoAPI
+import streamlit as st
 
 cg = CoinGeckoAPI()
+
+@st.cache_data(show_spinner="📡 Fetching all coin names from CoinGecko...")
+def get_all_coins_dict():
+    coins = cg.get_coins_list()
+    return {f"{coin['name']} ({coin['symbol'].upper()})": coin['id'] for coin in coins}
 
 def fetch_crypto_data(coin_id='bitcoin', interval='1h', limit=100, vs_currency='usd'):
     try:
