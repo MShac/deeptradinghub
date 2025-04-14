@@ -120,7 +120,7 @@ st.markdown(f"""
     </style>
     <div class="header-container">
         <img src="data:image/jpeg;base64,{logo_base64}" alt="Logo">
-        <h1>DeepTradeAI</h1>
+        <h1>DeepTradingHub</h1>
     </div>
 """, unsafe_allow_html=True)
 
@@ -172,7 +172,7 @@ if st.session_state.get("run_prediction", False):
         if live_price:
             nearest_fib = min(fib_prices, key=lambda x: abs(x - live_price))
             entry_level = nearest_fib
-            st.write(f"📌 Entry Level (Nearest Fibonacci): ${entry_level:.2f}")
+            st.write(f"📌 Entry Level : ${entry_level:.2f}")
         else:
             entry_level = support + fib_range * 0.5
 
@@ -240,7 +240,7 @@ st.markdown(
     """
     <footer>
         <hr>
-        <p>© 2025 DeepTradeAI. Built with ❤️ and AI.</p>
+        <p>© 2025 DeepTradingHub. Built with ❤️ and AI.</p>
     </footer>
     """,
     unsafe_allow_html=True
