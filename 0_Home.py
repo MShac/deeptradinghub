@@ -140,7 +140,7 @@ with st.sidebar:
 # Outside sidebar: fetch the data
 df = fetch_crypto_data(symbol=selected_symbol, interval=interval)
 
-    cg = CoinGeckoAPI()
+    #cg = CoinGeckoAPI()
 
     def get_live_price(symbol):
         try:
