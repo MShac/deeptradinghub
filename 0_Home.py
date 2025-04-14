@@ -137,17 +137,17 @@ with st.sidebar:
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-# Outside sidebar: fetch the data
+# ⬇️ Outside the sidebar block — no indentation
 df = fetch_crypto_data(symbol=selected_symbol, interval=interval)
 
-    #cg = CoinGeckoAPI()
+# ✅ Define function with NO indentation error
+def get_live_price(symbol):
+    try:
+        data = cg.get_price(ids=symbol, vs_currencies='usd')
+        return data[symbol]['usd']
+    except:
+        return None
 
-    def get_live_price(symbol):
-        try:
-            data = cg.get_price(ids=symbol, vs_currencies='usd')
-            return data[symbol]['usd']
-        except:
-            return None
 
     live_price = get_live_price(symbol)
     if live_price:
