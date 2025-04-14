@@ -129,6 +129,12 @@ with st.sidebar:
     st.title("⚙️ Settings")
     symbol = st.text_input("🔍 CoinGecko Coin ID (e.g. bitcoin, ethereum, solana):", DEFAULT_SYMBOL).lower()
     interval = st.selectbox("⏱️ Timeframe:", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
+    top_symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT"]
+selected_symbol = st.selectbox("Choose Symbol", top_symbols)
+
+# 📦 Fetch the data
+df = fetch_crypto_data(symbol=selected_symbol, interval=interval)
+
     show_fib = st.checkbox("📐 Show Fibonacci Levels", value=True)
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
