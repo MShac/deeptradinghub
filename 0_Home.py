@@ -212,9 +212,9 @@ if st.session_state.get("run_prediction", False):
             prediction, entry_price, stop_loss, take_profit = "No Signal", 0, 0, 0
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("📍 Entry", f"${entry_price:.2f}")
-        col2.metric("🛑 Stop Loss", f"${stop_loss:.2f}")
-        col3.metric("🎯 Take Profit", f"${take_profit:.2f}")
+        col1.metric("📍 Entry", format_price(entry_price))
+        col2.metric("🛑 Stop Loss", format_price(stop_loss))
+        col3.metric("🎯 Take Profit", format_price(take_profit))
 
         # --- CHART SECTION ---
         st.markdown('<div class="card">', unsafe_allow_html=True)
