@@ -1,58 +1,58 @@
-# data_fetcher.py
 import pandas as pd
-from datetime import datetime
+import time
 from pycoingecko import CoinGeckoAPI
-import streamlit as st
 
 cg = CoinGeckoAPI()
 
-@st.cache_data(show_spinner="📡 Fetching all coin names from CoinGecko...")
-def get_all_coins_dict():
-    coins = cg.get_coins_list()
-    return {f"{coin['name']} ({coin['symbol'].upper()})": coin['id'] for coin in coins}
+INTERVAL_MAP = {
+    "1d": "daily",
+    "1h": "hourly",
+    "4h": "hourly",
+    "1m": "minutely",
+    "5m": "minutely",
+    "15m": "minutely"
+}
 
-def fetch_crypto_data(coin_id='bitcoin', interval='1h', limit=100, vs_currency='usd'):
+def fetch_crypto_data(symbol_id, interval, limit=100):
+    """
+    Fetch historical OHLC data for the given coin from CoinGecko.
+    :param symbol_id: CoinGecko ID (e.g. 'bitcoin')
+    :param interval: e.g. '1m', '5m', '15m', '1h', '4h', '1d'
+    :param limit: number of candles to return (max depends on interval)
+    :return: DataFrame with OHLCV data
+    """
+    interval_type = INTERVAL_MAP.get(interval, "daily")
+    days = 1 if interval in ["1m", "5m", "15m", "1h", "4h"] else 30
+
     try:
-        # Map interval to CoinGecko 'days' param
+        market_chart = cg.get_coin_market_chart_by_id(id=symbol_id, vs_currency='usd', days=days)
+        prices = market_chart['prices']
+        df = pd.DataFrame(prices, columns=['Time', 'Close'])
+        df['Time'] = pd.to_datetime(df['Time'], unit='ms')
+        df['Close'] = df['Close'].astype(float)
+
+        # Simulate OHLC from close prices (since only 'Close' is available from CoinGecko minutely/hourly)
+        df['Open'] = df['Close'].shift(1).fillna(method='bfill')
+        df['High'] = df[['Close', 'Open']].max(axis=1)
+        df['Low'] = df[['Close', 'Open']].min(axis=1)
+        df = df[['Time', 'Open', 'High', 'Low', 'Close']]
+
+        # Resample based on interval
         interval_map = {
-            '1m': '1',
-            '5m': '1',
-            '15m': '1',
-            '30m': '1',
-            '1h': '7',
-            '4h': '14',
-            '1d': '30'
+            '1m': '1T', '5m': '5T', '15m': '15T',
+            '1h': '1H', '4h': '4H', '1d': '1D'
         }
 
-        if interval not in interval_map:
-            raise ValueError(f"Unsupported interval: {interval}")
+        if interval in interval_map:
+            df = df.set_index('Time').resample(interval_map[interval]).agg({
+                'Open': 'first',
+                'High': 'max',
+                'Low': 'min',
+                'Close': 'last'
+            }).dropna().reset_index()
 
-        days = interval_map[interval]
-        data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency=vs_currency, days=days)
-
-        prices = data.get('prices', [])
-        volumes = data.get('total_volumes', [])
-
-        if not prices or not volumes:
-            return pd.DataFrame()
-
-        # Build DataFrame
-        df = pd.DataFrame(prices, columns=["Time", "Close"])
-        df["Volume"] = [v[1] for v in volumes]
-        df["Time"] = pd.to_datetime(df["Time"], unit='ms')
-        df["Close"] = df["Close"].astype(float)
-        df["Volume"] = df["Volume"].astype(float)
-
-        # Approximate OHLC
-        df["Open"] = df["Close"].shift(1).fillna(method='bfill')
-        df["High"] = df["Close"].rolling(window=3, min_periods=1).max()
-        df["Low"] = df["Close"].rolling(window=3, min_periods=1).min()
-
-        # Limit rows to `limit`
-        df = df.dropna().tail(limit).reset_index(drop=True)
-
-        return df[["Time", "Open", "High", "Low", "Close", "Volume"]]
-
+        df = df.tail(limit).reset_index(drop=True)
+        return df
     except Exception as e:
-        print("❌ Error fetching data from CoinGecko:", e)
+        print(f"Error fetching data for {symbol_id}: {e}")
         return pd.DataFrame()
