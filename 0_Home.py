@@ -8,7 +8,7 @@ from model import train_model, predict_trade
 from config import DEFAULT_SYMBOL, DEFAULT_INTERVAL, DEFAULT_LIMIT
 from data_fetcher import fetch_crypto_data
 from pycoingecko import CoinGeckoAPI
-
+from data_fetcher import fetch_top_100_coins
 # Streamlit setup
 st.set_page_config(page_title="DeepTradeAI", layout="wide")
 
@@ -118,32 +118,41 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# --- Sidebar Settings ---
+
+# --- SIDEBAR SETTINGS ---
 with st.sidebar:
     st.title("⚙️ Settings")
     cg = CoinGeckoAPI()
 
+    # --- Cache top 100 coins for 1 hour ---
     @st.cache_data(ttl=3600)
     def get_top_100_coins():
         try:
             data = cg.get_coins_markets(vs_currency="usd", order="market_cap_desc", per_page=100, page=1)
             return {f"{coin['name']} ({coin['symbol'].upper()})": coin['id'] for coin in data}
-        except:
+        except Exception as e:
+            st.error("Failed to fetch coins list.")
             return {"Bitcoin (BTC)": "bitcoin"}
 
     COIN_SYMBOLS = get_top_100_coins()
+
+    # --- Coin Dropdown ---
     symbol_choice = st.selectbox("🔍 Select Coin:", options=list(COIN_SYMBOLS.keys()), index=0)
     symbol = COIN_SYMBOLS[symbol_choice]
 
+    # --- Timeframe ---
     interval = st.selectbox("⏱️ Timeframe:", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
+
+    # --- Toggles ---
     show_fib = st.checkbox("📐 Show Fibonacci Levels", value=True)
     show_indicators = st.checkbox("📊 Show Technical Indicators", value=True)
     show_sr = st.checkbox("🔁 Show Support/Resistance", value=True)
 
-    def get_live_price(symbol):
+    # --- Live Price ---
+    def get_live_price(symbol_id):
         try:
-            data = cg.get_price(ids=symbol, vs_currencies='usd')
-            return data[symbol]['usd']
+            data = cg.get_price(ids=symbol_id, vs_currencies='usd')
+            return data[symbol_id]['usd']
         except:
             return None
 
@@ -159,11 +168,15 @@ with st.sidebar:
                 return f"${price:,.6f}"
             else:
                 return f"${price:.8f}"
-        st.metric(label=f"💰 Live Price ({symbol})", value=format_price(live_price))
+
+        st.metric(label=f"💰 Live Price ({symbol_choice})", value=format_price(live_price))
 
     st.markdown("---")
     if st.button("🔄 Get Prediction"):
         st.session_state.run_prediction = True
+
+  
+
 
 # --- Main Content ---
 if st.session_state.get("run_prediction", False):
