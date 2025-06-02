@@ -122,3 +122,8 @@ else:  # Sell
         take_profit = entry_price * 1.02
 
     return ("Buy" if prediction == 1 else "Sell"), entry_price, (stop_loss, take_profit)
+    # ATR filter to avoid whipsaw during high volatility
+atr_threshold = df['ATR'].iloc[-1] * 1.5  # Customize this factor
+if df['ATR'].iloc[-1] > atr_threshold:
+    return "No Trade", None, None
+
