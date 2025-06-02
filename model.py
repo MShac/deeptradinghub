@@ -32,7 +32,8 @@ def get_nearest_level(price, levels, direction="support"):
         return levels_below[-1] if levels_below else price
     else:
         levels_above = [lvl for lvl in levels if lvl > price]
-        return levels_above[0] if levels_above else price
+        return levels_above[0] if levels_above else price * 1.005  # fallback 0.5% higher
+
 
 # Train the model
 def train_model(df):
