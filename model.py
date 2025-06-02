@@ -95,11 +95,16 @@ def predict_trade(df, model, scaler, support, resistance):
 
     current_price = df['Close'].iloc[-1]
 
-    # 📌 Entry price based on nearest support/resistance
-    if prediction == 1:  # Buy signal
-        entry_price = get_nearest_level(current_price, support, direction="support")
-    else:  # Sell signal
-        entry_price = get_nearest_level(current_price, resistance, direction="resistance")
+  if prediction == 1:  # Buy
+    entry_price = get_nearest_level(current_price, support, direction="support")
+    # Ensure entry is not above current market price
+    if entry_price > current_price:
+        entry_price = current_price
+else:  # Sell
+    entry_price = get_nearest_level(current_price, resistance, direction="resistance")
+    # Ensure entry is not below current market price
+    if entry_price < current_price:
+        entry_price = current_price
 
     # 📌 SL/TP logic based on support/resistance
     if support is not None and resistance is not None:
