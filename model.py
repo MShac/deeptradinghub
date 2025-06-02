@@ -95,6 +95,12 @@ def predict_trade(df, model, scaler, support, resistance):
     prediction = model.predict(scaled_input)[0]
 
     current_price = df['Close'].iloc[-1]
+    if resistance is not None and resistance <= current_price:
+    resistance = current_price * 1.005  # fallback 0.5% higher
+
+if support is not None and support >= current_price:
+    support = current_price * 0.995  # fallback 0.5% lower
+
 
   if prediction == 1:  # Buy
     entry_price = get_nearest_level(current_price, support, direction="support")
