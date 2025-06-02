@@ -34,7 +34,6 @@ def get_nearest_level(price, levels, direction="support"):
         levels_above = [lvl for lvl in levels if lvl > price]
         return levels_above[0] if levels_above else price * 1.005  # fallback 0.5% higher
 
-
 # Train the model
 def train_model(df):
     if df.empty or len(df) < 50:
@@ -74,7 +73,7 @@ def train_model(df):
 
 # Predict signal + entry + SL/TP
 def predict_trade(df, model, scaler, support, resistance):
-    if df.empty or 'Close' not in df:
+    if df.empty or 'Close' not in df.columns:
         return "No Data", None, None
 
     # Ensure EMA exists
@@ -83,54 +82,50 @@ def predict_trade(df, model, scaler, support, resistance):
     if 'EMA_21' not in df.columns:
         df['EMA_21'] = calculate_ema(df, 21)
 
-    # Feature columns that are expected in df
+    # Feature columns
     feature_columns = ['SMA', 'MACD', 'ATR', 'VWAP', 'Bollinger_Upper', 'Bollinger_Lower', 'EMA_9', 'EMA_21']
     for col in feature_columns:
         if col not in df.columns:
-            df[col] = 0
+            df[col] = 0  # fallback
 
-    # Prepare the data for prediction
+    # Prepare latest data
     latest_data = df[feature_columns].tail(1).fillna(0)
     scaled_input = scaler.transform(latest_data)
     prediction = model.predict(scaled_input)[0]
 
     current_price = df['Close'].iloc[-1]
+
+    # Validate resistance/support
     if resistance is not None and resistance <= current_price:
-    resistance = current_price * 1.005  # fallback 0.5% higher
+        resistance = current_price * 1.005  # fallback 0.5% higher
+    if support is not None and support >= current_price:
+        support = current_price * 0.995  # fallback 0.5% lower
 
-if support is not None and support >= current_price:
-    support = current_price * 0.995  # fallback 0.5% lower
+    # ATR filter to avoid whipsaw
+    atr_threshold = df['ATR'].iloc[-1] * 1.5  # example factor
+    if df['ATR'].iloc[-1] > atr_threshold:
+        return "No Trade", None, None
 
+    # Determine entry price
+    if prediction == 1:  # Buy
+        entry_price = get_nearest_level(current_price, support, direction="support")
+        if entry_price > current_price:
+            entry_price = current_price
+    else:  # Sell
+        entry_price = get_nearest_level(current_price, resistance, direction="resistance")
+        if entry_price < current_price:
+            entry_price = current_price
 
-  if prediction == 1:  # Buy
-    entry_price = get_nearest_level(current_price, support, direction="support")
-    # Ensure entry is not above current market price
-    if entry_price > current_price:
-        entry_price = current_price
-else:  # Sell
-    entry_price = get_nearest_level(current_price, resistance, direction="resistance")
-    # Ensure entry is not below current market price
-    if entry_price < current_price:
-        entry_price = current_price
-
-    # 📌 SL/TP logic based on support/resistance
+    # Determine SL/TP
     if support is not None and resistance is not None:
-        # For Buy, set stop_loss at support level and take_profit at resistance
         if prediction == 1:
-            stop_loss = support  # Stop loss near support for Buy
-            take_profit = resistance  # Take profit near resistance for Buy
-        # For Sell, set stop_loss at resistance level and take_profit at support
+            stop_loss = support
+            take_profit = resistance
         else:
-            stop_loss = resistance  # Stop loss near resistance for Sell
-            take_profit = support  # Take profit near support for Sell
+            stop_loss = resistance
+            take_profit = support
     else:
-        # Fallback if support/resistance is not available
         stop_loss = entry_price * 0.98
         take_profit = entry_price * 1.02
 
     return ("Buy" if prediction == 1 else "Sell"), entry_price, (stop_loss, take_profit)
-    # ATR filter to avoid whipsaw during high volatility
-atr_threshold = df['ATR'].iloc[-1] * 1.5  # Customize this factor
-if df['ATR'].iloc[-1] > atr_threshold:
-    return "No Trade", None, None
-
